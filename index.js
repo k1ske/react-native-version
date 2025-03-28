@@ -193,8 +193,8 @@ function version(program, projectPath) {
 	var appJSON;
 	const appJSONPath = path.join(projPath, "app.json");
 	const isExpoApp = isExpoProject(projPath);
-	const isExpoAndroidManagedApp  = isExpoManagedProject('android');
-	const isExpoIosManagedApp  = isExpoManagedProject('ios');
+	const isExpoAndroidManagedApp  = isExpoManagedProject(projPath, 'android');
+	const isExpoIosManagedApp  = isExpoManagedProject(projPath, 'ios');
 
 	isExpoApp && log({ text: "Expo detected" }, programOpts.quiet);
 
@@ -223,16 +223,16 @@ function version(program, projectPath) {
 				gradleFile = fs.readFileSync(programOpts.android, "utf8");
 			} catch (err) {
 				isExpoApp ||
-					reject([
-						{
-							style: "red",
-							text: "No gradle file found at " + programOpts.android
-						},
-						{
-							style: "yellow",
-							text: 'Use the "--android" option to specify the path manually'
-						}
-					]);
+				reject([
+					{
+						style: "red",
+						text: "No gradle file found at " + programOpts.android
+					},
+					{
+						style: "yellow",
+						text: 'Use the "--android" option to specify the path manually'
+					}
+				]);
 			}
 
 			if (!programOpts.incrementBuild && (!isExpoApp || !isExpoAndroidManagedApp)) {
@@ -346,21 +346,21 @@ function version(program, projectPath) {
 					reject(
 						stdout.indexOf("directory") > -1
 							? [
-									{
-										style: "red",
-										text: "No project folder found at " + programOpts.ios
-									},
-									{
-										style: "yellow",
-										text: 'Use the "--ios" option to specify the path manually'
-									}
-							  ]
+								{
+									style: "red",
+									text: "No project folder found at " + programOpts.ios
+								},
+								{
+									style: "yellow",
+									text: 'Use the "--ios" option to specify the path manually'
+								}
+							]
 							: [
-									{
-										style: "red",
-										text: stdout
-									}
-							  ]
+								{
+									style: "red",
+									text: stdout
+								}
+							]
 					);
 
 					return;
@@ -413,31 +413,31 @@ function version(program, projectPath) {
 
 				xcode.document.projects.forEach(project => {
 					!programOpts.neverIncrementBuild &&
-						project.targets.filter(Boolean).forEach(target => {
-							target.buildConfigurationsList.buildConfigurations.forEach(
-								config => {
-									if (target.name === appPkg.name) {
-										const CURRENT_PROJECT_VERSION = getNewVersionCode(
-											programOpts,
-											parseInt(
-												config.ast.value
-													.get("buildSettings")
-													.get("CURRENT_PROJECT_VERSION").text,
-												10
-											),
-											appPkg.version,
-											programOpts.resetBuild
-										);
+					project.targets.filter(Boolean).forEach(target => {
+						target.buildConfigurationsList.buildConfigurations.forEach(
+							config => {
+								if (target.name === appPkg.name) {
+									const CURRENT_PROJECT_VERSION = getNewVersionCode(
+										programOpts,
+										parseInt(
+											config.ast.value
+												.get("buildSettings")
+												.get("CURRENT_PROJECT_VERSION").text,
+											10
+										),
+										appPkg.version,
+										programOpts.resetBuild
+									);
 
-										config.patch({
-											buildSettings: {
-												CURRENT_PROJECT_VERSION
-											}
-										});
-									}
+									config.patch({
+										buildSettings: {
+											CURRENT_PROJECT_VERSION
+										}
+									});
 								}
-							);
-						});
+							}
+						);
+					});
 
 					const plistFiles = plistFilenames.map(filename => {
 						return fs.readFileSync(
@@ -459,20 +459,20 @@ function version(program, projectPath) {
 									json,
 									!programOpts.incrementBuild
 										? {
-												CFBundleShortVersionString: getCFBundleShortVersionString(
-													appPkg.version
-												)
-										  }
+											CFBundleShortVersionString: getCFBundleShortVersionString(
+												appPkg.version
+											)
+										}
 										: {},
 									!programOpts.neverIncrementBuild
 										? {
-												CFBundleVersion: getNewVersionCode(
-													programOpts,
-													parseInt(json.CFBundleVersion, 10),
-													appPkg.version,
-													programOpts.resetBuild
-												).toString()
-										  }
+											CFBundleVersion: getNewVersionCode(
+												programOpts,
+												parseInt(json.CFBundleVersion, 10),
+												appPkg.version,
+												programOpts.resetBuild
+											).toString()
+										}
 										: {}
 								)
 							)
@@ -488,21 +488,21 @@ function version(program, projectPath) {
 							<?xml version="1.0" encoding="UTF-8"?>
 							<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 							<plist version="1.0">` +
-								"\n" +
-								beautify(
-									fs
-										.readFileSync(path.join(programOpts.ios, filename), "utf8")
-										.match(/<dict>[\s\S]*<\/dict>/)[0],
-									Object.assign(
-										{ end_with_newline: true },
-										indent.type === "tab"
-											? { indent_with_tabs: true }
-											: { indent_size: indent.amount }
-									)
-								) +
-								stripIndents`
+							"\n" +
+							beautify(
+								fs
+									.readFileSync(path.join(programOpts.ios, filename), "utf8")
+									.match(/<dict>[\s\S]*<\/dict>/)[0],
+								Object.assign(
+									{ end_with_newline: true },
+									indent.type === "tab"
+										? { indent_with_tabs: true }
+										: { indent_size: indent.amount }
+								)
+							) +
+							stripIndents`
 							</plist>` +
-								"\n"
+							"\n"
 						);
 					});
 				});
