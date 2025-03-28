@@ -235,7 +235,7 @@ function version(program, projectPath) {
 					]);
 			}
 
-			if (!programOpts.incrementBuild && !(isExpoApp && )) {
+			if (!programOpts.incrementBuild && (!isExpoApp || !isExpoAndroidManagedApp)) {
 				gradleFile = gradleFile.replace(
 					/versionName (["'])(.*)["']/,
 					"versionName $1" + appPkg.version + "$1"
