@@ -126,6 +126,15 @@ function isExpoProject(projPath) {
 }
 
 /**
+ * Determines whether the project is an Expo app or a plain React Native app
+ * @private
+ * @return {Boolean} true if the project is an Expo app
+ */
+function isExpoManagedProject(projPath, platform) {
+	return !fs.existsSync(path.join(projPath, getDefaults()[platform]));
+}
+
+/**
  * Versions your app
  * @param {Object} program commander/CLI-style options, camelCased
  * @param {string} projectPath Path to your React Native project
@@ -184,6 +193,8 @@ function version(program, projectPath) {
 	var appJSON;
 	const appJSONPath = path.join(projPath, "app.json");
 	const isExpoApp = isExpoProject(projPath);
+	const isExpoAndroidManagedApp  = isExpoManagedProject('android');
+	const isExpoIosManagedApp  = isExpoManagedProject('ios');
 
 	isExpoApp && log({ text: "Expo detected" }, programOpts.quiet);
 
@@ -224,7 +235,7 @@ function version(program, projectPath) {
 					]);
 			}
 
-			if (!programOpts.incrementBuild && !isExpoApp) {
+			if (!programOpts.incrementBuild && !(isExpoApp && )) {
 				gradleFile = gradleFile.replace(
 					/versionName (["'])(.*)["']/,
 					"versionName $1" + appPkg.version + "$1"
@@ -246,7 +257,9 @@ function version(program, projectPath) {
 							})
 						})
 					});
-				} else {
+				}
+
+				if (!isExpoApp || !isExpoAndroidManagedApp) {
 					gradleFile = gradleFile.replace(/versionCode (\d+)/, function(
 						match,
 						cg1
@@ -264,7 +277,9 @@ function version(program, projectPath) {
 
 			if (isExpoApp) {
 				fs.writeFileSync(appJSONPath, JSON.stringify(appJSON, null, 2));
-			} else {
+			}
+
+			if (!isExpoApp || !isExpoAndroidManagedApp) {
 				fs.writeFileSync(programOpts.android, gradleFile);
 			}
 
@@ -380,7 +395,9 @@ function version(program, projectPath) {
 						);
 					}
 				}
-			} else {
+			}
+
+			if (!isExpoApp || !isExpoIosManagedApp) {
 				// Find any folder ending in .xcodeproj
 				const xcodeProjects = fs
 					.readdirSync(programOpts.ios)
