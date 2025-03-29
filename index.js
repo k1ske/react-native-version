@@ -204,7 +204,13 @@ function version(program, projectPath) {
 		if (isExpoApp && !programOpts.incrementBuild) {
 			appJSON = Object.assign({}, appJSON, {
 				expo: Object.assign({}, appJSON.expo, {
-					version: appPkg.version
+					version: appPkg.version,
+					ios: Object.assign({}, appJSON.expo.ios, {
+						runtimeVersion: appPkg.version,
+					}),
+					android: Object.assign({}, appJSON.expo.android, {
+						runtimeVersion: appPkg.version,
+					}),
 				})
 			});
 		}
