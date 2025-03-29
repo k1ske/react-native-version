@@ -62,6 +62,20 @@ function getPlistFilenames(xcode) {
 }
 
 /**
+ * Returns Expo.plist filenames
+ * @private
+ * @param {Xcode} xcode Opened Xcode project file
+ * @return {Array} Plist filenames
+ */
+function getExpoPlistFilenames(xcode) {
+	return xcode.document.projects.map(project => {
+		return project.targets.map(target => {
+			return `${target.name}/Supporting/Expo.plist`
+		});
+	}).flat()
+}
+
+/**
  * Returns numerical version code for a given version name
  * @private
  * @return {Number} e.g. returns 1002003 for given version 1.2.3
@@ -416,6 +430,7 @@ function version(program, projectPath) {
 				const projectFolder = path.join(programOpts.ios, xcodeProjects[0]);
 				const xcode = Xcode.open(path.join(projectFolder, "project.pbxproj"));
 				const plistFilenames = getPlistFilenames(xcode);
+				const expoPlistFilenames = getExpoPlistFilenames(xcode);
 
 				xcode.document.projects.forEach(project => {
 					!programOpts.neverIncrementBuild &&
@@ -452,7 +467,27 @@ function version(program, projectPath) {
 						);
 					});
 
+					const expoPlistFiles = expoPlistFilenames.map(filename => {
+						const fullpath = path.join(programOpts.ios, filename);
+						if (!fs.existsSync(fullpath)) {
+							return null;
+						}
+
+						return fs.readFileSync(
+							fullpath,
+							"utf8"
+						);
+					});
+
 					const parsedPlistFiles = plistFiles.map(file => {
+						return plist.parse(file);
+					});
+
+					const parsedExpoPlistFiles = expoPlistFiles.map(file => {
+						if (!file) {
+							return null;
+						}
+
 						return plist.parse(file);
 					});
 
@@ -484,6 +519,27 @@ function version(program, projectPath) {
 							)
 						);
 					});
+
+					parsedExpoPlistFiles.forEach((json, index) => {
+						if (!json) {
+							return;
+						}
+
+						fs.writeFileSync(
+							path.join(programOpts.ios, expoPlistFilenames[index]),
+							plist.build(
+								Object.assign(
+									{},
+									json,
+									!programOpts.incrementBuild
+										? {
+											EXUpdatesRuntimeVersion: appPkg.version
+										}
+										: {},
+								)
+							)
+						);
+					})
 
 					plistFilenames.forEach((filename, index) => {
 						const indent = detectIndent(plistFiles[index]);
